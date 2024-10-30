@@ -1,8 +1,0 @@
-package: github.com/pdf/kdeconnect-chrome-extension
-import:
-- package: github.com/godbus/dbus
-  version: ^5.0.3
-  subpackages:
-  - introspect
-- package: github.com/paulrademacher/climenu
-- package: github.com/kardianos/osext
