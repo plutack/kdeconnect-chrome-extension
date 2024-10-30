@@ -13,11 +13,11 @@ const (
 	dest = `org.kde.kdeconnect`
 	path = `/modules/kdeconnect`
 
-	signalReachableStatusChanged = dest + `.device.reachableStatusChanged`
-	signalStateChanged           = dest + `.device.stateChanged`
-	signalTrustedChanged         = dest + `.device.trustedChanged`
-	signalNameChanged            = dest + `.device.nameChanged`
-	signalPluginsChanged         = dest + `.device.pluginsChanged`
+	signalReachableChanged = dest + `.device.reachableChanged`
+	signalStateChanged     = dest + `.device.stateChanged`
+	signalPairStateChanged = dest + `.device.PairStateChanged`
+	signalNameChanged      = dest + `.device.nameChanged`
+	signalPluginsChanged   = dest + `.device.pluginsChanged`
 
 	pluginShare = `kdeconnect_share`
 )
@@ -84,7 +84,7 @@ type Device struct {
 	IconName         string              `json:"iconName"`
 	StatusIconName   string              `json:"statusIconName"`
 	IsReachable      bool                `json:"isReachable"`
-	IsTrusted        bool                `json:"isTrusted"`
+	IsPaired         bool                `json:"isTrusted"`
 	SupportedPlugins map[string]struct{} `json:"supportedPlugins"`
 	conn             *dbus.Conn
 	obj              dbus.BusObject
@@ -93,7 +93,7 @@ type Device struct {
 }
 
 func (d *Device) watch() error {
-	// kdeconnect < v1.2
+	// kdeconnect < v1.2 :(should probably deprecate this entirely)
 	if err := d.addMatchSignal(`reachableStatusChanged`); err != nil {
 		return err
 	}
@@ -101,11 +101,11 @@ func (d *Device) watch() error {
 	if err := d.addMatchSignal(`reachableChanged`); err != nil {
 		return err
 	}
-
+	// still trying to find what stateChanged represented and if it the api remains
 	if err := d.addMatchSignal(`stateChanged`); err != nil {
 		return err
 	}
-	if err := d.addMatchSignal(`trustedChanged`); err != nil {
+	if err := d.addMatchSignal(`pairStateChanged`); err != nil {
 		return err
 	}
 	if err := d.addMatchSignal(`nameChanged`); err != nil {
@@ -120,7 +120,7 @@ func (d *Device) watch() error {
 		for s := range d.signal {
 			var err error
 			switch s.Name {
-			case signalReachableStatusChanged:
+			case signalReachableChanged:
 				if err = d.getIsReachable(); err != nil {
 					log(err)
 				}
@@ -132,8 +132,8 @@ func (d *Device) watch() error {
 				if err = d.getName(); err != nil {
 					log(err)
 				}
-			case signalTrustedChanged:
-				if err = d.getIsTrusted(); err != nil {
+			case signalPairStateChanged:
+				if err = d.getIsPaired(); err != nil {
 					log(err)
 				}
 			case signalStateChanged:
@@ -218,12 +218,12 @@ func (d *Device) getIsReachable() error {
 	return nil
 }
 
-func (d *Device) getIsTrusted() error {
-	v, err := d.obj.GetProperty(dest + `.device.isTrusted`)
+func (d *Device) getIsPaired() error {
+	v, err := d.obj.GetProperty(dest + `.device.isPaired`)
 	if err != nil {
 		return err
 	}
-	d.IsTrusted = v.Value().(bool)
+	d.IsPaired = v.Value().(bool)
 
 	return nil
 }
@@ -257,7 +257,7 @@ func (d *Device) update() error {
 	if err := d.getStatusIconName(); err != nil {
 		logBadProp(d.ID, `statusIconName`, err)
 	}
-	if err := d.getIsTrusted(); err != nil {
+	if err := d.getIsPaired(); err != nil {
 		logBadProp(d.ID, `isTrusted`, err)
 	}
 	if err := d.getIsReachable(); err != nil {
@@ -286,7 +286,7 @@ func (d *Device) supported(plugin string) error {
 	if !d.IsReachable {
 		return fmt.Errorf("Device is not reachable")
 	}
-	if !d.IsTrusted {
+	if !d.IsPaired {
 		return fmt.Errorf("Device is not trusted")
 	}
 

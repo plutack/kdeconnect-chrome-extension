@@ -142,7 +142,7 @@ func main() {
 
 	if devicesFlag {
 		for _, dev := range devices.devices {
-			fmt.Printf("- %s: %s (paired: %v; reachable: %v)\n", dev.Name, dev.ID, dev.IsTrusted, dev.IsReachable)
+			fmt.Printf("- %s: %s (paired: %v; reachable: %v)\n", dev.Name, dev.ID, dev.IsPaired, dev.IsReachable)
 		}
 		os.Exit(0)
 	}
